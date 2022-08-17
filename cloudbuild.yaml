@@ -1,0 +1,22 @@
+steps:
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    secretEnv: ["TOKEN_VAULT"]
+    args:
+      - "-c"
+      - |
+        touch .env
+        docker pull us.gcr.io/gotoko-infra-prod/vault-to-env:latest
+        docker run --rm -v $(pwd)/.env:/opt/.env -e  VAULT_HOST=https://vault-stg.gotoko.io/v1/test-secret/data/super-secret -e VAULT_TOKEN=$$TOKEN_VAULT us.gcr.io/gotoko-infra-prod/vault-to-env:latest
+
+  - name: "bash"
+    args:
+      - "-c"
+      - |
+        cat .env
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/518254401849/secrets/token-vault/versions/1
+      env: "TOKEN_VAULT"

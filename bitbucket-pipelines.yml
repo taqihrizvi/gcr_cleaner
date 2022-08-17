@@ -1,0 +1,66 @@
+image: atlassian/default-image:3
+
+options:
+  docker: true
+
+definitions:
+  services:
+    docker:
+      memory: 3072
+
+pipelines:
+  default:
+    - step:
+        name: Test
+        image: us.gcr.io/gotoko-infra-prod/gotoko-deployment-tool:latest
+        services: ["docker"]
+        runs-on: ["self.hosted", "linux"]
+        trigger: automatic
+        script:
+          - echo "Default step"
+          # - echo $SSH_PRIVATE_KEY > temp.txt
+          # - cat temp.txt 
+          # - cat temp.txt | base64 -d > /root/.ssh/id_rsa
+          # - chmod 400 /root/.ssh/id_rsa
+          # - ls -alh /root/.ssh
+          # - cat /root/.ssh/id_rsa
+          # - ssh-keyscan -t rsa bitbucket.org > /root/.ssh/known_hosts
+          # - cat /root/.ssh/known_hosts
+          # - git clone git@bitbucket.org:gotoko/cloudbuild-playground.git
+  
+  custom:
+    gcr-cleaner:
+      - variables:
+          - name: ENV
+            default: staging
+            allowed-values:
+              - staging
+              - production
+          - name: GCR_URL
+            default: us.gcr.io
+            allowed-values:
+              - asia.gcr.io
+              - gcr.io
+              - us.gcr.io
+              - eu.gcr.io
+      - step:
+          name: GCR Cleaner
+          deployment: staging
+          image: us.gcr.io/gotoko-infra-prod/gotoko-deployment-tool:latest
+          services: ["docker"]
+          runs-on: ["self.hosted", "linux"]
+          trigger: automatic
+          script:
+            - /gcp-auth $ENV
+            - ./gcr-cleaner.sh $ENV $GCR_URL
+    gcr-cleaner-auto-staging:
+      - step:
+          name: GCR Cleaner
+          deployment: staging
+          image: us.gcr.io/gotoko-infra-prod/gotoko-deployment-tool:latest
+          services: ["docker"]
+          runs-on: ["self.hosted", "linux"]
+          trigger: automatic
+          script:
+            - /gcp-auth staging
+            - ./gcr-cleaner-auto.sh staging
